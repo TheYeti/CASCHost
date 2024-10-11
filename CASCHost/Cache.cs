@@ -3,7 +3,7 @@ using CASCEdit.Configs;
 using CASCEdit.Helpers;
 using CASCEdit.Structs;
 using Microsoft.AspNetCore.Hosting;
-using MySql.Data.MySqlClient;
+using MySqlConnector;
 using System;
 using System.Collections.Generic;
 using System.Data;
@@ -116,28 +116,29 @@ namespace CASCHost
 
 
 		#region SQL Methods
-		private void LoadOrCreate()
+		private async void LoadOrCreate()
 		{
 			Version = new SingleConfig(Path.Combine(env.WebRootPath, "SystemFiles", ".build.info"), "Active", "1")["Version"];
-			using (MySqlConnection connection = new MySqlConnection(Startup.Settings.SqlConnection))
-			using (MySqlCommand command = new MySqlCommand())
+			await using var connection = new MySqlConnection(Startup.Settings.SqlConnection);
 			{
 				try
 				{
-					connection.Open();
-					command.Connection = connection;
+					await connection.OpenAsync();
+					using (var command = new MySqlCommand())
+					{
+                        // create data table
+                        command.Connection = connection;
+                        command.CommandText = CREATE_DATA_TABLE;
+                        await command.ExecuteNonQueryAsync();
 
-					// create data table
-					command.CommandText = CREATE_DATA_TABLE;
-					command.ExecuteNonQuery();
+                        // load data
+                        command.CommandText = LOAD_DATA;
+                        ReadAll(await command.ExecuteReaderAsync());
 
-					// load data
-					command.CommandText = LOAD_DATA;
-					ReadAll(command.ExecuteReader());
-
-					// purge old data
-					command.CommandText = PURGE_RECORDS;
-					command.ExecuteNonQuery();
+                        // purge old data
+                        command.CommandText = PURGE_RECORDS;
+                        await command.ExecuteNonQueryAsync();
+                    }
 				}
 				catch(MySqlException ex)
 				{

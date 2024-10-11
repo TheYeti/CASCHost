@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.IO;
 using System.Linq;
 using System.Threading.Tasks;
+using System.Net;
 using Microsoft.AspNetCore.Hosting;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.Logging;
@@ -25,7 +26,7 @@ namespace CASCHost
 				.ConfigureLogging(options => options.AddConsole())
 				.UseConfiguration(config)
 				.UseContentRoot(Directory.GetCurrentDirectory())
-				.UseKestrel(options => options.ConfigureEndpointDefaults(opts => opts.NoDelay = true))
+				.UseKestrel()
 				.UseStartup<Startup>()
 				.Build();
 
